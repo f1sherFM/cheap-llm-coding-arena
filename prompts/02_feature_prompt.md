@@ -1,129 +1,62 @@
-# ✨ Task 02 — Frozen Prompt: Feature Implementation
-
-> **Version:** `v1`  
-> **Date:** 2026-05-09  
-> **Temperature:** 0.2  
-> **Max Tokens:** 4096  
-> **Task Type:** Feature Add  
-> **Language:** Python (FastAPI)  
-> **Difficulty:** Medium
-
----
+# Frozen Prompt — Task 02 (Feature Implementation)
 
 ## System Message
-
-```text
 You are a senior software engineer. You will be given a coding task.
 Respond with code only. Do not add conversational filler.
-Wrap your code in markdown code fences (```python ... ```).
-If you need to create or modify multiple files, output each file separately with its path.
-```
-
----
+Wrap your code in markdown code fences with language tag.
+If you need to modify multiple files, output each file separately with its path.
 
 ## Task Description
+A Django REST Framework service needs a soft delete feature for the Product model. Deleted products should be hidden from the list endpoint by default, but retrievable via a query parameter ?include_deleted=true. The API contract for active products must remain unchanged.
 
-Add a new `POST /projects` endpoint to the existing FastAPI application. This endpoint should allow authenticated users to create a new project with the following fields:
-
-- `name` (required, string, max 100 chars)
-- `description` (optional, string, max 500 chars)
-- `owner_id` (required, integer, must match the authenticated user)
-
-The endpoint must:
-1. Validate input using Pydantic models.
-2. Reject requests where `owner_id` does not match the current authenticated user's ID.
-3. Insert the project into the database and return the created record.
-4. Return `409 Conflict` if a project with the same `name` already exists for that owner.
-
-**Your task:** Implement the endpoint, validation logic, and any necessary service/serializer changes. Do not modify existing endpoints. Keep changes minimal. No new dependencies.
-
----
+Your task: Implement soft delete. Add the necessary field, filtering logic, and parameter handling. Keep changes minimal. Do not add new dependencies.
 
 ## Codebase Context
 
-### `app/main.py`
+[FILE: app/models.py]
+from django.db import models
 
-```python
-from fastapi import FastAPI
-from app.api import users, projects
+class Product(models.Model):
+    name = models.CharField(max_length=200)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-app = FastAPI(title="Task Manager")
-app.include_router(users.router, prefix="/api/v1")
-app.include_router(projects.router, prefix="/api/v1")
-```
+    def __str__(self):
+        return self.name
 
-### `app/api/users.py`
+[FILE: app/serializers.py]
+from rest_framework import serializers
+from .models import Product
 
-```python
-from fastapi import APIRouter, Depends
-from app.auth import get_current_user
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'price', 'created_at']
 
-router = APIRouter()
+[FILE: app/views.py]
+from rest_framework import viewsets
+from .models import Product
+from .serializers import ProductSerializer
 
-@router.get("/users/me")
-async def read_users_me(current_user: dict = Depends(get_current_user)):
-    return current_user
-```
+class ProductViewSet(viewsets.ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
 
-### `app/auth.py`
-
-```python
-from fastapi import Header, HTTPException
-
-async def get_current_user(x_user_id: int = Header(...)) -> dict:
-    if x_user_id <= 0:
-        raise HTTPException(status_code=401, detail="Invalid user ID")
-    return {"id": x_user_id, "role": "member"}
-```
-
-### `app/db.py`
-
-```python
-import asyncpg
-
-async def get_db():
-    pass
-```
-
-### `app/models/project.py`
-
-```python
-from pydantic import BaseModel
-
-class Project(BaseModel):
-    id: int
-    name: str
-    description: str | None
-    owner_id: int
-    created_at: str
-```
-
-### `app/api/projects.py` (new file stub)
-
-```python
-from fastapi import APIRouter
-
-router = APIRouter()
-```
-
----
+[FILE: tests/test_products.py]
+def test_product_list_returns_active():
+    # Existing test assumes all created products are returned
+    response = client.get('/products/')
+    assert response.status_code == 200
+    assert len(response.data) == Product.objects.count()
 
 ## Constraints
+1. Do not change the response schema for active products.
+2. Existing tests must continue to pass.
+3. Do not add new dependencies.
+4. Keep changes minimal and DRF-idiomatic.
 
-1. Do not modify existing endpoints in `users.py` or `main.py`.
-2. Use existing patterns (`get_current_user`, `get_db`, Pydantic) where possible.
-3. No new external dependencies.
-4. Keep changes minimal.
-
----
-
-## Output Format
-
-Provide the complete modified or new file(s) in markdown code blocks with the file path as a comment at the top.
-
-Example:
-
-```python
-# app/api/projects.py
-[your code here]
-```
+## Output Format (STRICT)
+1. Explanation (max 3 sentences)
+2. Code changes: provide FULL file content with [FILE: path] header
+3. Optional: new/updated tests in separate block
+4. Assumptions (if any)

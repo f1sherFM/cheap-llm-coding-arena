@@ -1,113 +1,49 @@
-# 🔧 Task 04 — Refactor
+# Task 04 — Refactor: Legacy Auth Middleware
 
-> **Type:** Refactor  
-> **Language:** Python (async / callback-style)  
-> **Difficulty:** Medium-Hard  
-> **Estimated LOC touched:** 50-100
+## Meta
+Version: v1
+Date: 2026-05-09
+Temperature: 0.2
+Max Tokens: 4096
+Task Type: Refactor
+Language: Python / Flask
+Difficulty: Medium
+Bracket: Free / Cheap
 
----
+## Problem Statement
+The auth module works but suffers from duplicated validation logic, magic strings, and missing type annotations. This increases maintenance cost and risk of inconsistencies.
 
-## 📋 Task Description
+## Goal
+Refactor app/auth.py to follow DRY principles, extract validation into a reusable component, add type hints, and preserve exact backward compatibility.
 
-Refactor the `app/services/legacy_processor.py` module from a callback-based async pattern to modern `async/await` with structured error handling.
+## Files Provided
+- app/auth.py — legacy auth logic (read-only for behavior, editable for structure)
 
-**Current problems:**
-- Deeply nested callbacks (`_on_fetch` → `_on_parse` → `_on_save`)
-- Errors are silently swallowed or passed as string arguments
-- Hard to trace control flow
-- No type hints
+## Success Criteria
+1. Duplicated token checks removed or centralized
+2. Type hints added to all functions and parameters
+3. External behavior unchanged (same status codes, same JSON structure)
+4. Code is cleaner, more readable, and easier to extend
+5. No new dependencies or architectural overhauls
 
-**Your task:** Rewrite the module using `async/await`, explicit exception handling, and type hints. Preserve the exact external behavior: the `process_item` coroutine should accept an `item_id` and return a `dict` with `status` and `result`.
+## Scoring (For Judges)
+Correctness (0-5): Behavior preserved, no regressions in auth flow
+Regression safety (0-5): HTTP responses and status codes match original exactly
+Context understanding (0-5): Model identifies duplication, magic values, and missing types
+Code quality (0-5): Clean, idiomatic Flask/Python, proper separation of concerns
+Tests/edge cases (0-5): Notes or tests confirming backward compatibility (optional but valued)
+Speed/stability (0-5): No performance degradation, no heavy abstractions
+Manual fixes needed (0-5): Refactored code is production-ready and drop-in replacement
 
-Do not change the calling code in `app/api/items.py`.
+## Expected Solution Pattern
+- Extract token validation into a dedicated function or decorator
+- Remove duplicated if/return blocks from routes
+- Add type hints (str, Optional[str], Tuple[Response, int], etc.)
+- Keep SECRET as module-level constant or move to config (acceptable)
+- Preserve exact error messages and status codes
 
----
-
-## 🧩 Context
-
-### `app/services/legacy_processor.py`
-
-```python
-import asyncio
-from app.db import get_db
-from app.external.parser import parse_raw
-
-def process_item(item_id, callback):
-    db = get_db()
-
-    def _on_fetch(row):
-        if row is None:
-            callback({"status": "not_found", "result": None})
-            return
-        raw = row["raw_data"]
-
-        def _on_parse(parsed):
-            if parsed.get("error"):
-                callback({"status": "parse_error", "result": parsed["error"]})
-                return
-
-            def _on_save(success):
-                if not success:
-                    callback({"status": "save_failed", "result": None})
-                else:
-                    callback({"status": "ok", "result": parsed["data"]})
-
-            db.execute("UPDATE items SET processed = 1 WHERE id = ?", (item_id,), _on_save)
-
-        parse_raw(raw, _on_parse)
-
-    db.fetchone("SELECT * FROM items WHERE id = ?", (item_id,), _on_fetch)
-```
-
-### `app/api/items.py` (caller — must not change)
-
-```python
-from fastapi import APIRouter
-from app.services.legacy_processor import process_item
-import asyncio
-
-router = APIRouter()
-
-@router.post("/items/{item_id}/process")
-async def process(item_id: int):
-    result = await process_item(item_id)
-    return result
-```
-
-### `app/external/parser.py`
-
-```python
-import asyncio
-
-async def parse_raw(raw: str) -> dict:
-    # Simulated async parser
-    await asyncio.sleep(0.01)
-    if not raw.strip():
-        return {"error": "empty input"}
-    return {"data": raw.upper()}
-```
-
----
-
-## ✅ Success Criteria
-
-1. `process_item` is an `async def` function.
-2. No nested callback functions remain.
-3. Exceptions are raised or handled explicitly (not passed as strings inside dicts).
-4. The return value contract is preserved: `{"status": "...", "result": ...}`.
-5. `app/api/items.py` requires **zero changes** to keep working.
-6. No new dependencies.
-
----
-
-## 🏷️ Scoring Notes
-
-| Category | Focus |
-|----------|-------|
-| Correctness | Does the refactored code produce the same return values? |
-| Regression Safety | Does the caller (`items.py`) still work unchanged? |
-| Context Understanding | Does it use the existing `parse_raw` async API correctly? |
-| Code Quality | Is the result clean, typed, and easy to follow? |
-| Tests / Edge Cases | Does it handle `row is None` and `parse_raw` errors gracefully? |
-| Speed / Stability | N/A |
-| Manual Fixes Needed | How much cleanup is required to match the calling signature? |
+## Notes for Judges
+- Accept decorator approach or helper function + wrapper
+- Reject solutions that change response format or status codes
+- Reject over-engineering (e.g., full JWT library integration, database auth)
+- Bonus: clear separation of validation vs routing, descriptive function names, PEP-8 compliance

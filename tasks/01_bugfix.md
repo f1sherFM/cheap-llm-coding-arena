@@ -1,102 +1,49 @@
-# 🐛 Task 01 — Bug Fix
+# Task 01 — Bug Fix: KeyError in User Serializer
 
-> **Type:** Bug Fix  
-> **Language:** Python  
-> **Difficulty:** Medium  
-> **Estimated LOC touched:** 15-40
+## Meta
+Version: v1
+Date: 2026-05-09
+Temperature: 0.2
+Max Tokens: 4096
+Task Type: Bug Fix
+Language: Python
+Difficulty: Medium
+Bracket: Free / Cheap
 
----
+## Problem Statement
+A production FastAPI service returns 500 Internal Server Error on GET /users/{user_id} when a user has no linked profile. The error is KeyError: 'profile' in the serializer.
 
-## 📋 Task Description
+## Goal
+Fix the serializer to handle missing profile gracefully without changing the API contract or breaking existing tests.
 
-A production FastAPI service is experiencing intermittent `500 Internal Server Error` responses on the `/users/{user_id}` endpoint. Logs show a `KeyError` originating from the user serializer when the `profile` field is missing from the database response.
+## Files Provided
+- app/api/users.py — endpoint handler
+- app/serializers/user_serializer.py — contains the bug
+- app/services/user_service.py — data fetching layer
+- tests/test_users.py — existing test (must pass)
 
-**Your task:** Fix the bug. Do not change the API contract or the database schema. Keep changes minimal.
+## Success Criteria
+1. No KeyError when raw["profile"] is missing or None
+2. Response schema unchanged for users WITH profile
+3. Existing test test_serialize_user_complete still passes
+4. Minimal changes — no refactoring, no new dependencies
 
----
+## Scoring (For Judges)
+Correctness (0-5): Bug fixed, no new errors
+Regression safety (0-5): Existing tests pass
+Context understanding (0-5): Model understood optional profile
+Code quality (0-5): Clean, readable, minimal
+Tests/edge cases (0-5): Added test for profile is None
+Speed/stability (0-5): No heavy ops or new deps
+Manual fixes needed (0-5): Patch applies cleanly
 
-## 🧩 Context
+## Expected Solution Pattern
+Use .get() or conditional check for safe access:
+profile = raw.get("profile") or {}
+then access profile.get("field") instead of raw["profile"]["field"]
 
-### `app/api/users.py`
-
-```python
-from fastapi import APIRouter, Depends, HTTPException
-from app.services.user_service import get_user_by_id
-from app.serializers.user_serializer import serialize_user
-
-router = APIRouter()
-
-@router.get("/users/{user_id}")
-async def get_user(user_id: int, db=Depends(get_db)):
-    raw_user = await get_user_by_id(db, user_id)
-    if not raw_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return serialize_user(raw_user)
-```
-
-### `app/serializers/user_serializer.py`
-
-```python
-def serialize_user(raw):
-    return {
-        "id": raw["id"],
-        "email": raw["email"],
-        "profile": {
-            "display_name": raw["profile"]["display_name"],
-            "avatar_url": raw["profile"]["avatar_url"],
-            "bio": raw["profile"]["bio"],
-        },
-        "created_at": raw["created_at"].isoformat(),
-    }
-```
-
-### `app/services/user_service.py`
-
-```python
-async def get_user_by_id(db, user_id: int):
-    row = await db.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
-    if not row:
-        return None
-    return dict(row)
-```
-
-### `tests/test_users.py` (existing, must still pass)
-
-```python
-def test_serialize_user_complete():
-    raw = {
-        "id": 1,
-        "email": "alice@example.com",
-        "profile": {
-            "display_name": "Alice",
-            "avatar_url": "https://cdn.example.com/a.png",
-            "bio": "Hello",
-        },
-        "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc),
-    }
-    result = serialize_user(raw)
-    assert result["profile"]["display_name"] == "Alice"
-```
-
----
-
-## ✅ Success Criteria
-
-1. `GET /users/{user_id}` no longer raises `500` when `profile` is missing.
-2. Existing tests continue to pass.
-3. The API response shape is unchanged for users who **do** have a profile.
-4. No new dependencies are introduced.
-
----
-
-## 🏷️ Scoring Notes
-
-| Category | Focus |
-|----------|-------|
-| Correctness | Does it handle missing `profile` without breaking existing behavior? |
-| Regression Safety | Do existing tests still pass? Is the response schema preserved? |
-| Context Understanding | Does the fix respect the existing code style (e.g., not over-engineering)? |
-| Code Quality | Is the fix clean and readable? |
-| Tests / Edge Cases | Does the model add a test for the missing-profile case? |
-| Speed / Stability | N/A |
-| Manual Fixes Needed | How many edits required to make the output runnable? |
+## Notes for Judges
+- Accept both .get() and if profile: patterns
+- Reject solutions that change response schema for happy path
+- Reject solutions that add try/except without explanation
+- Bonus: model adds a test case for missing profile

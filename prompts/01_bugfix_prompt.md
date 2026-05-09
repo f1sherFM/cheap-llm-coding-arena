@@ -1,39 +1,19 @@
-# 🐛 Task 01 — Frozen Prompt: Bug Fix
-
-> **Version:** `v1`  
-> **Date:** 2026-05-09  
-> **Temperature:** 0.2  
-> **Max Tokens:** 4096  
-> **Task Type:** Bug Fix  
-> **Language:** Python  
-> **Difficulty:** Medium
-
----
+# Frozen Prompt — Task 01 (Bug Fix)
 
 ## System Message
-
-```text
 You are a senior software engineer. You will be given a coding task.
 Respond with code only. Do not add conversational filler.
-Wrap your code in markdown code fences (```python ... ```).
+Wrap your code in markdown code fences with language tag.
 If you need to modify multiple files, output each file separately with its path.
-```
-
----
 
 ## Task Description
+A production FastAPI service is experiencing intermittent 500 Internal Server Error responses on the /users/{user_id} endpoint. Logs show a KeyError originating from the user serializer when the profile field is missing from the database response.
 
-A production FastAPI service is experiencing intermittent `500 Internal Server Error` responses on the `/users/{user_id}` endpoint. Logs show a `KeyError` originating from the user serializer when the `profile` field is missing from the database response.
-
-**Your task:** Fix the bug. Do not change the API contract or the database schema. Keep changes minimal. Do not add new dependencies.
-
----
+Your task: Fix the bug. Do not change the API contract or the database schema. Keep changes minimal. Do not add new dependencies.
 
 ## Codebase Context
 
-### `app/api/users.py`
-
-```python
+[FILE: app/api/users.py]
 from fastapi import APIRouter, Depends, HTTPException
 from app.services.user_service import get_user_by_id
 from app.serializers.user_serializer import serialize_user
@@ -46,11 +26,8 @@ async def get_user(user_id: int, db=Depends(get_db)):
     if not raw_user:
         raise HTTPException(status_code=404, detail="User not found")
     return serialize_user(raw_user)
-```
 
-### `app/serializers/user_serializer.py`
-
-```python
+[FILE: app/serializers/user_serializer.py]
 def serialize_user(raw):
     return {
         "id": raw["id"],
@@ -62,21 +39,15 @@ def serialize_user(raw):
         },
         "created_at": raw["created_at"].isoformat(),
     }
-```
 
-### `app/services/user_service.py`
-
-```python
+[FILE: app/services/user_service.py]
 async def get_user_by_id(db, user_id: int):
     row = await db.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
     if not row:
         return None
     return dict(row)
-```
 
-### `tests/test_users.py` (existing, must still pass)
-
-```python
+[FILE: tests/test_users.py]
 def test_serialize_user_complete():
     raw = {
         "id": 1,
@@ -90,26 +61,15 @@ def test_serialize_user_complete():
     }
     result = serialize_user(raw)
     assert result["profile"]["display_name"] == "Alice"
-```
-
----
 
 ## Constraints
-
-1. Do not change the API response schema for users who **do** have a profile.
+1. Do not change the API response schema for users who do have a profile.
 2. Existing tests must continue to pass.
 3. Do not add new dependencies.
 4. Keep changes minimal.
 
----
-
-## Output Format
-
-Provide the complete modified file(s) in markdown code blocks with the file path as a comment at the top.
-
-Example:
-
-```python
-# app/serializers/user_serializer.py
-[your code here]
-```
+## Output Format (STRICT)
+1. Explanation (max 3 sentences)
+2. Code changes: provide FULL file content with [FILE: path] header
+3. Optional: new/updated tests in separate block
+4. Assumptions (if any)

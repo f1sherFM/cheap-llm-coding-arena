@@ -1,91 +1,50 @@
-# 🧪 Task 03 — Test Writing
+# Task 03 — Tests: Edge Cases for Discount Calculator
 
-> **Type:** Test Generation  
-> **Language:** Python  
-> **Difficulty:** Medium  
-> **Estimated LOC touched:** 30-60
+## Meta
+Version: v1
+Date: 2026-05-09
+Temperature: 0.2
+Max Tokens: 4096
+Task Type: Tests / Edge Cases
+Language: Python
+Difficulty: Medium
+Bracket: Free / Cheap
 
----
+## Problem Statement
+The discount calculation logic is production-critical but lacks automated tests. Manual verification is error-prone and slows down releases.
 
-## 📋 Task Description
+## Goal
+Create a comprehensive pytest suite that validates correct behavior across normal cases, boundary conditions, overlapping discount rules, and invalid inputs.
 
-Write comprehensive unit tests for the `app/utils/pagination.py` module. This module provides a helper that slices a list into paginated chunks with metadata.
+## Files Provided
+- src/models.py — User and CartItem dataclasses
+- src/discount.py — calculate_discount function (read-only)
 
-**Your task:** Produce a `tests/test_pagination.py` file with thorough tests. Cover:
+## Success Criteria
+1. Tests run cleanly with pytest (no syntax or import errors)
+2. Covers: empty cart, zero/negative prices, premium threshold, loyalty threshold, >1000 total, discount cap (20%), overlapping rules
+3. Uses pytest best practices (fixtures, parametrization, clear assertions)
+4. Does not modify business logic or add dependencies
 
-- Normal usage
-- Empty input
-- Single-page results
-- Out-of-range page numbers
-- Invalid inputs (negative page size, zero page size)
-- Large page sizes relative to data length
+## Scoring (For Judges)
+Correctness (0-5): Assertions match expected behavior, no false positives/negatives
+Regression safety (0-5): Tests would catch real bugs if logic changes
+Context understanding (0-5): Model identifies all relevant edge cases and boundaries
+Code quality (0-5): Clean pytest structure, parametrization where appropriate, readable
+Tests/edge cases (0-5): Comprehensive coverage including cap, overlap, invalid inputs
+Speed/stability (0-5): Fast execution, no heavy setup, isolated tests
+Manual fixes needed (0-5): Tests run out-of-the-box with standard pytest
 
-Do not modify the source module. Add your tests only.
+## Expected Solution Pattern
+- Use pytest fixtures for base User and CartItem objects
+- Parametrize tests for multiple input combinations
+- Test boundaries: total=0, total=1000, total=1000.01
+- Test cap: verify discount never exceeds 20%
+- Test invalid/edge: empty cart, negative price, zero qty
+- Clear assertion messages
 
----
-
-## 🧩 Context
-
-### `app/utils/pagination.py`
-
-```python
-def paginate(data, page, page_size):
-    """
-    Slice a list into a paginated response.
-
-    Args:
-        data: List of items.
-        page: 1-indexed page number.
-        page_size: Number of items per page.
-
-    Returns:
-        dict: {
-            "items": [...],
-            "page": page,
-            "page_size": page_size,
-            "total": len(data),
-            "pages": total_pages,
-        }
-    """
-    if page_size <= 0:
-        raise ValueError("page_size must be positive")
-    if page < 1:
-        raise ValueError("page must be >= 1")
-
-    total = len(data)
-    pages = (total + page_size - 1) // page_size
-    start = (page - 1) * page_size
-    end = start + page_size
-
-    return {
-        "items": data[start:end],
-        "page": page,
-        "page_size": page_size,
-        "total": total,
-        "pages": pages,
-    }
-```
-
----
-
-## ✅ Success Criteria
-
-1. All tests are valid `pytest` test functions.
-2. At least 6 distinct test cases covering the categories listed above.
-3. Tests use `assert` statements with clear intent.
-4. No modifications to `app/utils/pagination.py`.
-5. Tests run successfully with `pytest tests/test_pagination.py`.
-
----
-
-## 🏷️ Scoring Notes
-
-| Category | Focus |
-|----------|-------|
-| Correctness | Do the tests accurately verify the spec? |
-| Regression Safety | N/A (no existing code to break) |
-| Context Understanding | Do tests respect the existing function signature and docstring contract? |
-| Code Quality | Are tests readable, well-named, and DRY (e.g., using `pytest.mark.parametrize`)? |
-| Tests / Edge Cases | Are edge cases comprehensive? |
-| Speed / Stability | N/A |
-| Manual Fixes Needed | How many syntax / import fixes are needed? |
+## Notes for Judges
+- Accept both class-based and function-based test styles
+- Reject tests that mock the function under test
+- Reject tests with unclear or missing assertions
+- Bonus: parametrized tables, descriptive test names, coverage of float precision edge cases

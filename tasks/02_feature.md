@@ -1,54 +1,48 @@
-# Task 02 — Feature: Soft Delete with Query Filter
+## TASK
+A Django REST Framework service needs a soft delete feature for the Product model. Deleted products should be hidden from the list endpoint by default, but retrievable via a query parameter ?include_deleted=true. The API contract for active products must remain unchanged.
 
-## Meta
-Version: v1
-Date: 2026-05-09
-Temperature: 0.2
-Max Tokens: 4096
-Task Type: Feature Implementation
-Language: Python / Django REST Framework
-Difficulty: Medium
-Bracket: Free / Cheap
+Your task: Implement soft delete. Add the necessary field, filtering logic, and parameter handling. Keep changes minimal. Do not add new dependencies.
 
-## Problem Statement
-The product catalog requires a soft delete mechanism. Deleted items must be excluded from standard list views but accessible for admin/recovery purposes via a query parameter.
+## CODEBASE CONTEXT
 
-## Goal
-Add a deleted_at field to the Product model. Modify the view to filter out deleted products by default. Add support for ?include_deleted=true to override the filter.
+[FILE: app/models.py]
+from django.db import models
 
-## Files Provided
-- app/models.py — Product model
-- app/serializers.py — ProductSerializer
-- app/views.py — ProductViewSet
-- tests/test_products.py — existing test (must pass)
+class Product(models.Model):
+    name = models.CharField(max_length=200)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-## Success Criteria
-1. deleted_at field added to model (nullable)
-2. List endpoint hides deleted products by default
-3. ?include_deleted=true returns all products
-4. Existing tests pass without modification
-5. Minimal changes, follows DRF conventions
+    def __str__(self):
+        return self.name
 
-## Scoring (For Judges)
-Correctness (0-5): Soft delete implemented, filtering works correctly
-Regression safety (0-5): Existing tests pass, active product schema unchanged
-Context understanding (0-5): Model understands DRF patterns (get_queryset override)
-Code quality (0-5): Clean, idiomatic DRF, no over-engineering
-Tests/edge cases (0-5): Adds test for include_deleted param and deleted state
-Speed/stability (0-5): Efficient queryset filtering, no N+1 or heavy ops
-Manual fixes needed (0-5): Changes apply cleanly, standard DRF structure
+[FILE: app/serializers.py]
+from rest_framework import serializers
+from .models import Product
 
-## Expected Solution Pattern
-1. Add deleted_at = models.DateTimeField(null=True, blank=True) to model
-2. Override get_queryset() in ViewSet:
-   qs = Product.objects.all()
-   if not self.request.query_params.get('include_deleted'):
-       qs = qs.filter(deleted_at__isnull=True)
-   return qs
-3. Keep serializer unchanged
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'price', 'created_at']
 
-## Notes for Judges
-- Accept get_queryset override or custom filter backend
-- Reject solutions that delete records permanently
-- Reject solutions that change default list behavior for active items
-- Bonus: proper migration note or handles soft delete in create/update logic
+[FILE: app/views.py]
+from rest_framework import viewsets
+from .models import Product
+from .serializers import ProductSerializer
+
+class ProductViewSet(viewsets.ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+[FILE: tests/test_products.py]
+def test_product_list_returns_active():
+    # Existing test assumes all created products are returned
+    response = client.get('/products/')
+    assert response.status_code == 200
+    assert len(response.data) == Product.objects.count()
+
+## CONSTRAINTS
+1. Do not change the response schema for active products.
+2. Existing tests must continue to pass.
+3. Do not add new dependencies.
+4. Keep changes minimal and DRF-idiomatic.

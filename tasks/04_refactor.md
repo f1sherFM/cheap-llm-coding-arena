@@ -1,49 +1,48 @@
-# Task 04 — Refactor: Legacy Auth Middleware
+## TASK
+A production Flask service contains a legacy auth module with duplicated validation logic, magic values, and poor readability. The code works but is hard to maintain and extend.
 
-## Meta
-Version: v1
-Date: 2026-05-09
-Temperature: 0.2
-Max Tokens: 4096
-Task Type: Refactor
-Language: Python / Flask
-Difficulty: Medium
-Bracket: Free / Cheap
+Your task: Refactor the auth module to improve readability, remove duplication, and add type hints. Preserve 100% backward compatibility. Do not change external behavior or HTTP response formats. Keep changes minimal and idiomatic.
 
-## Problem Statement
-The auth module works but suffers from duplicated validation logic, magic strings, and missing type annotations. This increases maintenance cost and risk of inconsistencies.
+## CODEBASE CONTEXT
 
-## Goal
-Refactor app/auth.py to follow DRY principles, extract validation into a reusable component, add type hints, and preserve exact backward compatibility.
+[FILE: app/auth.py]
+import functools
+from flask import request, jsonify
 
-## Files Provided
-- app/auth.py — legacy auth logic (read-only for behavior, editable for structure)
+SECRET = "hardcoded_secret_123"
 
-## Success Criteria
-1. Duplicated token checks removed or centralized
-2. Type hints added to all functions and parameters
-3. External behavior unchanged (same status codes, same JSON structure)
-4. Code is cleaner, more readable, and easier to extend
-5. No new dependencies or architectural overhauls
+def check_token(token):
+    if not token:
+        return False
+    if len(token) < 10:
+        return False
+    if token.startswith("bad_"):
+        return False
+    return True
 
-## Scoring (For Judges)
-Correctness (0-5): Behavior preserved, no regressions in auth flow
-Regression safety (0-5): HTTP responses and status codes match original exactly
-Context understanding (0-5): Model identifies duplication, magic values, and missing types
-Code quality (0-5): Clean, idiomatic Flask/Python, proper separation of concerns
-Tests/edge cases (0-5): Notes or tests confirming backward compatibility (optional but valued)
-Speed/stability (0-5): No performance degradation, no heavy abstractions
-Manual fixes needed (0-5): Refactored code is production-ready and drop-in replacement
+def protected_route1():
+    token = request.headers.get("Authorization")
+    if not token:
+        return jsonify({"error": "Missing token"}), 401
+    if not check_token(token):
+        return jsonify({"error": "Invalid token"}), 401
+    if len(token) < 10:
+        return jsonify({"error": "Token too short"}), 400
+    return jsonify({"data": "secret1"})
 
-## Expected Solution Pattern
-- Extract token validation into a dedicated function or decorator
-- Remove duplicated if/return blocks from routes
-- Add type hints (str, Optional[str], Tuple[Response, int], etc.)
-- Keep SECRET as module-level constant or move to config (acceptable)
-- Preserve exact error messages and status codes
+def protected_route2():
+    token = request.headers.get("Authorization")
+    if not token:
+        return jsonify({"error": "Missing token"}), 401
+    if not check_token(token):
+        return jsonify({"error": "Invalid token"}), 401
+    if len(token) < 10:
+        return jsonify({"error": "Token too short"}), 400
+    return jsonify({"data": "secret2"})
 
-## Notes for Judges
-- Accept decorator approach or helper function + wrapper
-- Reject solutions that change response format or status codes
-- Reject over-engineering (e.g., full JWT library integration, database auth)
-- Bonus: clear separation of validation vs routing, descriptive function names, PEP-8 compliance
+## CONSTRAINTS
+1. Do not change the external behavior or response schemas.
+2. Do not add new dependencies or change HTTP status codes.
+3. Remove duplicated validation logic.
+4. Add type hints to functions and parameters.
+5. Keep refactoring minimal and focused on auth.py only.

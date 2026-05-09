@@ -1,50 +1,43 @@
-# Task 03 — Tests: Edge Cases for Discount Calculator
+## TASK
+A production Python service uses a discount calculator function that works correctly but has zero test coverage. Business logic is sensitive to pricing errors, so comprehensive test coverage is critical.
 
-## Meta
-Version: v1
-Date: 2026-05-09
-Temperature: 0.2
-Max Tokens: 4096
-Task Type: Tests / Edge Cases
-Language: Python
-Difficulty: Medium
-Bracket: Free / Cheap
+Your task: Write a pytest test suite for calculate_discount(user, cart). Cover normal flows, boundary values, overlapping conditions, and invalid inputs. Do not modify the business logic. Keep tests idiomatic and maintainable.
 
-## Problem Statement
-The discount calculation logic is production-critical but lacks automated tests. Manual verification is error-prone and slows down releases.
+## CODEBASE CONTEXT
 
-## Goal
-Create a comprehensive pytest suite that validates correct behavior across normal cases, boundary conditions, overlapping discount rules, and invalid inputs.
+[FILE: src/models.py]
+from dataclasses import dataclass
 
-## Files Provided
-- src/models.py — User and CartItem dataclasses
-- src/discount.py — calculate_discount function (read-only)
+@dataclass
+class User:
+    is_premium: bool
+    loyalty_years: int
 
-## Success Criteria
-1. Tests run cleanly with pytest (no syntax or import errors)
-2. Covers: empty cart, zero/negative prices, premium threshold, loyalty threshold, >1000 total, discount cap (20%), overlapping rules
-3. Uses pytest best practices (fixtures, parametrization, clear assertions)
-4. Does not modify business logic or add dependencies
+@dataclass
+class CartItem:
+    price: float
+    qty: int
 
-## Scoring (For Judges)
-Correctness (0-5): Assertions match expected behavior, no false positives/negatives
-Regression safety (0-5): Tests would catch real bugs if logic changes
-Context understanding (0-5): Model identifies all relevant edge cases and boundaries
-Code quality (0-5): Clean pytest structure, parametrization where appropriate, readable
-Tests/edge cases (0-5): Comprehensive coverage including cap, overlap, invalid inputs
-Speed/stability (0-5): Fast execution, no heavy setup, isolated tests
-Manual fixes needed (0-5): Tests run out-of-the-box with standard pytest
+[FILE: src/discount.py]
+def calculate_discount(user: User, cart: list[CartItem]) -> float:
+    total = sum(item.price * item.qty for item in cart)
+    if total <= 0:
+        return 0.0
+    
+    discount_rate = 0.0
+    if user.is_premium:
+        discount_rate += 0.10
+    if total > 1000:
+        discount_rate += 0.05
+    if user.loyalty_years >= 3:
+        discount_rate += 0.05
+    
+    # Cap at 20%
+    discount_rate = min(discount_rate, 0.20)
+    return round(total * discount_rate, 2)
 
-## Expected Solution Pattern
-- Use pytest fixtures for base User and CartItem objects
-- Parametrize tests for multiple input combinations
-- Test boundaries: total=0, total=1000, total=1000.01
-- Test cap: verify discount never exceeds 20%
-- Test invalid/edge: empty cart, negative price, zero qty
-- Clear assertion messages
-
-## Notes for Judges
-- Accept both class-based and function-based test styles
-- Reject tests that mock the function under test
-- Reject tests with unclear or missing assertions
-- Bonus: parametrized tables, descriptive test names, coverage of float precision edge cases
+## CONSTRAINTS
+1. Do not modify src/discount.py or src/models.py.
+2. Use pytest framework only.
+3. Cover edge cases explicitly.
+4. Keep tests fast, isolated, and readable.

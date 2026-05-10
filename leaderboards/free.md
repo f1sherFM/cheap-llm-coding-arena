@@ -18,7 +18,7 @@
 | 5 | — | — | — | ➖ | Pending Round 1 |
 | 6 | — | — | — | ➖ | Pending Round 1 |
 | 7 | — | — | — | ➖ | Pending Round 1 |
-| 8 | — | — | — | ➖ | Pending Round 1 |
+| 8 | GLM 4.5 Air | 29 | Viable with supervision | Falls short in the accuracy of test data and strict adherence to contracts. | Pending Round 1 |
 
 ---
 
